@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+        <!-- Ashu Tayal, May 16, 2021 -->
+<head>
+    <meta charset="utf-8">
+        <!-- set styles on the top -->
+
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            /* font-family: Georgia, 'Times New Roman', Times, serif; */
+        }
+
+        svg {
+            overflow: visible;
+            margin-top: 30px;
+        }
+
+        h1 {
+            margin-left: 285px;
+            font-family:sans-serif;
+            font-weight: 100;
+            font-size: 30px;
+            /* margin: auto; */
+            /* border: 20px solid white; */
+        }
+
+        .pop-up {
+            position: absolute;
+        }
+
+
+        .hover{
+            fill: white
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            Children in U.S. living in Poverty in 2018
+
+        </h1>
+
+        <svg width="1050px" height="750px"></svg>
+
+        <div class="pop-up"></div>
+
+    </div>
+</body>
+
+
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+
+<script src="https://unpkg.com/topojson@3"></script>
+
+<script>
+
+    Promise.all([d3.json('topo.json')])
+        .then(ready)
+        .catch((err) => { console.log(err) });
+
+    function ready(res) {
+
+        let raw = res[0]
+
+        let county = topojson.feature(raw, raw.objects.county);
+        let state = topojson.feature(raw, raw.objects.state);
+
+       // console.log({county})
+
+        let width = 1050;
+        let height = 700;
+        
+        let margin = { top: -10, right: 10, bottom: 10, left: 0 };
+
+        let svg = d3.select("body")
+            .select("svg")
+
+        let myProjection = d3.geoIdentity()
+            .fitSize([width, height], county)
+            .reflectY(true)
+
+        let path = d3.geoPath()
+            .projection(myProjection)
+
+        svg.append("g")
+            .selectAll("path")
+            .data(state.features)
+            .join("path")
+            .attr("d", path)
+            .style("fill", "#e5e5e5")
+            .style("stroke", "black")
+            .style("pointer-events", "none")
+
+            // Children in U.S. living in Poverty in 2018
+
+        // svg.append('text').text('Children in U.S. living in Poverty in 2018')//disposable income, which is defined as market income plus cash')
+        //     .attr('x', 350)
+        //     .attr('y', 0)
+        //     .attr('fill', '#333')
+        //     .attr('font-size', '20px')
+        //     .attr('font-family', "sans-serif")
+        //     .attr('font-weight', 200)
+
+        svg.append('text').text('Source: U.S. Census')//disposable income, which is defined as market income plus cash')
+            .attr('x', -10)
+            .attr('y', height)
+            .attr('fill', '#999999')
+            .attr('font-size', '12px')
+            .attr('font-family', "sans-serif")
+            .attr('font-weight', 200)
+
+        let states = svg
+            .append("path")
+            .attr("d", path)
+            .style("fill", "none")
+            .style("stroke", "black")
+            .style("stroke-width", 1)
+            .style("pointer-events", "none")
+
+        let countyCircles = svg.append("g")
+            .selectAll(".circles")
+            .data(county.features.filter(d => d.geometry != null))
+            .join("circle")
+            .attr("class", d => { return "circles p-" + d.properties.Geo_NAME}) //unique
+            .attr("r", d => Math.sqrt(d.properties.pop_18_in_poverty / 300))
+            .attr("cx", d => { return path.centroid(d)[0] }) //coordinates
+            .attr("cy", d => { return path.centroid(d)[1] })
+            .style("fill", "orange")
+
+        let popup = d3.select(".pop-up")
+        let formatter = d3.format(",") //format variable
+
+        countyCircles.on("mouseover", (event, d) => {
+            popup
+                .style("border", "1px solid black")
+                .style("width", "200px")
+                .style("background", "white")
+                .style("padding", "10px")
+                .style("left", (event.x + 10) + "px")
+                .style("top", (event.y - 15) + "px") //reposition
+                .style("opacity", .8)
+                .html("In " +
+                      "<b>" + d.properties.Geo_QName + ", " + formatter(d.properties.pop_18_in_poverty)+ "</b>" + " children live in poverty.")
+        })
+
+        countyCircles.on("mouseout", (event, d) => {
+            popup
+                .style("opacity", 0)
+
+        })
+
+}
+
+</script>
